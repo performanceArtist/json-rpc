@@ -22,16 +22,16 @@ const callA = {
   data: { a: 1 },
 };
 
-const callB = {
-  method: 'test' as const,
-  data: { a: 2 },
-};
-
 const asyncCall = {
   method: 'asyncOne' as const,
   data: { id: 'TEST' },
 };
 
-RPCClient.batch(callA, callB, asyncCall)
-  .then(([a, b, c]) => console.log(a, b, c))
+const asyncCallMany = {
+  method: 'asyncMany' as const,
+  data: { ids: ['One', 'Two', 'Three'] },
+};
+
+RPCClient.batch(callA, asyncCall, asyncCallMany)
+  .then(([a, todo, todos]) => console.log(a, todo, todos))
   .catch(console.error);

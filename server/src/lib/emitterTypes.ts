@@ -35,7 +35,7 @@ export type SubscriberType = 'sync' | 'async';
 
 export type Subscriber<C extends EventMap> = {
   event: keyof C;
-  callback: (data: Parameters<C[keyof C]>) => any;
+  callback: (data: Parameters<C[keyof C]>) => ReturnType<C[keyof C]> | TaskEither<ErrorType, ReturnType<C[keyof C]>>;
   type: SubscriberType;
 };
 

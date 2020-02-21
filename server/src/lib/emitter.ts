@@ -60,7 +60,7 @@ class Emitter<C extends EventMap> {
   public emit<E extends keyof C>(
     event: E,
     data: Parameters<C[E]>[0],
-  ): Either<ErrorType, ReturnType<C[E]>> | TaskEither<ErrorType, ReturnType<C[E]>> {
+  ): Either<ErrorType, ReturnType<C[E]>> | Either<ErrorType, TaskEither<ErrorType, ReturnType<C[E]>>> {
     const subscriber = findFirst<Subscriber<C>>(
       subscriber => subscriber.event === event,
     )(this.subscribers);

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import jsonRPC, { IParsedObjectRequest } from 'jsonrpc-lite';
+import jsonRPC from 'jsonrpc-lite';
 import { bimap, either, right, Either } from 'fp-ts/lib/Either';
 import {
   bimap as taskBimap,
@@ -13,8 +13,9 @@ import { array } from 'fp-ts/lib/Array';
 import { getRPCError, ValidRPC } from './rpc';
 import { makePerform } from './perform';
 import { Emitter } from './emitter';
+import { ErrorType, EventMap } from './emitterTypes';
 
-export const makeRPCHandler = (emitter: Emitter<any>) => (
+export const makeRPCHandler = <T extends EventMap>(emitter: Emitter<T>) => (
   req: Request,
   res: Response,
 ) => {
@@ -33,18 +34,20 @@ const isTaskEither = <L, R>(
   return task instanceof Function;
 };
 
-const handleRPCCall = (rpc: ValidRPC, emitter: Emitter<any>, res: Response) => {
+const handleRPCCall = <T extends EventMap>(
+  rpc: ValidRPC,
+  emitter: Emitter<T>,
+  res: Response,
+) => {
   const perform = makePerform(emitter);
-  const result = perform(rpc);
-
-  const requestID = (rpc as IParsedObjectRequest).payload.id;
-  const sendRPCError = (error: any) => {
+  const requestID = rpc.payload.id;
+  const sendRPCError = (error: ErrorType) => {
     res.json(jsonRPC.error(requestID, getRPCError(error)));
   };
-  const sendRPCData = (data: any) => res.json(jsonRPC.success(requestID, data));
+  const sendRPCData = (data: T) => res.json(jsonRPC.success(requestID, data));
 
   pipe(
-    result,
+    perform(rpc),
     bimap(sendRPCError, ({ result }) => {
       if (isTaskEither(result)) {
         pipe(result, taskBimap(sendRPCError, sendRPCData))();
@@ -61,26 +64,20 @@ const liftToTaskEither = (data: {
 }): TaskEither<any, any> =>
   isTaskEither(data.result) ? data.result : fromEither(right(data.result));
 
-const handleBatchedRPCCalls = (
+const handleBatchedRPCCalls = <T extends EventMap>(
   rpc: ValidRPC[],
-  emitter: Emitter<any>,
+  emitter: Emitter<T>,
   res: Response,
 ) => {
   const perform = makePerform(emitter);
-  const eitherResults = rpc.map(perform);
 
   pipe(
-    array.sequence(either)(eitherResults),
+    array.traverse(either)(rpc, perform),
     bimap(
       () => res.sendStatus(400),
-      rawResults => {
-        const results = array.traverse(taskEither)(
-          rawResults,
-          liftToTaskEither,
-        );
-
+      allResults => {
         pipe(
-          results,
+          array.traverse(taskEither)(allResults, liftToTaskEither),
           taskBimap(
             () => res.sendStatus(400),
             results => res.json(results),
