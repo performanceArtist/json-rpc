@@ -1,11 +1,14 @@
-import { Type } from 'io-ts';
 import { fold } from 'fp-ts/lib/Option';
 import { Either, bimap, chain, fromOption } from 'fp-ts/lib/Either';
 import { findFirst } from 'fp-ts/lib/Array';
 import { pipe } from 'fp-ts/lib/pipeable';
+import { TaskEither } from 'fp-ts/lib/TaskEither';
 
 import {
+  EmitterArgs,
+  AsyncHandler,
   EventMap,
+  IOMap,
   Subscriber,
   ErrorType,
   noHandler,
@@ -15,15 +18,14 @@ import {
 class Emitter<C extends EventMap> {
   private subscribers: Subscriber<C>[] = [];
 
-  public on<E extends keyof C>(
-    event: E,
-    callback: C[E],
-    schema: Type<Parameters<C[E]>[0]>,
-  ) {
+  constructor(private schemas: IOMap<C>) {}
+
+  private on<E extends keyof C>(args: EmitterArgs<C, E>) {
+    const { event, callback, type } = args;
     const oldSubscriber = findFirst(
       (subscriber: Subscriber<C>) => subscriber.event === event,
     )(this.subscribers);
-    const newSubscriber = { event, callback, schema };
+    const newSubscriber = { event, callback, type };
 
     this.subscribers = pipe(
       oldSubscriber,
@@ -41,6 +43,14 @@ class Emitter<C extends EventMap> {
     };
   }
 
+  public sync<E extends keyof C>(event: E, callback: C[E]) {
+    this.on({ event, callback, type: 'async' });
+  }
+
+  public async<E extends keyof C>(event: E, callback: AsyncHandler<C[E]>) {
+    this.on({ event, callback, type: 'async' });
+  }
+
   public off<E extends keyof C>(event: E) {
     this.subscribers = this.subscribers.filter(
       subscriber => subscriber.event !== event,
@@ -50,7 +60,7 @@ class Emitter<C extends EventMap> {
   public emit<E extends keyof C>(
     event: E,
     data: Parameters<C[E]>[0],
-  ): Either<ErrorType, any> {
+  ): Either<ErrorType, ReturnType<C[E]>> | TaskEither<ErrorType, ReturnType<C[E]>> {
     const subscriber = findFirst<Subscriber<C>>(
       subscriber => subscriber.event === event,
     )(this.subscribers);
@@ -59,10 +69,10 @@ class Emitter<C extends EventMap> {
       subscriber,
       fromOption(() => noHandler(event)),
       chain(subscriber => {
-        const { schema, callback } = subscriber;
+        const { callback } = subscriber;
 
         return pipe(
-          schema.decode(data),
+          this.schemas[event].decode(data),
           bimap(
             () => invalidParams(data),
             data => callback(data),

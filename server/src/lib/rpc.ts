@@ -1,22 +1,17 @@
 import {
-  IParsedObjectNotification,
   IParsedObjectRequest,
   IParsedObject,
   RpcStatusType,
   JsonRpcError
 } from 'jsonrpc-lite';
 
-import { ErrorType } from './emitter';
+import { ErrorType } from './emitterTypes';
 
-export type ValidRPC = IParsedObjectNotification | IParsedObjectRequest;
+export type ValidRPC = IParsedObjectRequest;
 export type ValidRPCRequest = ValidRPC | ValidRPC[];
 
 export const isValidRPC = (type: RpcStatusType) =>
-  type === 'notification' || type === 'request';
-
-export const isNotification = (
-  rpc: ValidRPC,
-): rpc is IParsedObjectNotification => rpc.type === 'notification';
+  type === 'request';
 
 export const isValidRequest = (
   rpc: IParsedObject | IParsedObject[],
@@ -29,7 +24,12 @@ export const isValidRequest = (
 };
 
 export const getRPCError = ({ type, data }: ErrorType) => {
-  return type === 'invalidParams'
-    ? JsonRpcError.invalidParams(data)
-    : JsonRpcError.methodNotFound(data);
+  switch(type) {
+    case 'invalidParams':
+      return JsonRpcError.invalidParams(data);
+    case 'noHandler':
+      return JsonRpcError.methodNotFound(data);
+    case 'asyncReject':
+      return JsonRpcError.internalError(data);
+  }
 };

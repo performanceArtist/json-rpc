@@ -60,7 +60,7 @@ export const makeRPCClient = <
       if (data.error || !Array.isArray(data)) {
         throw data.error;
       } else {
-        return data.map(item => item.result);
+        return data;
       }
     });
   };
