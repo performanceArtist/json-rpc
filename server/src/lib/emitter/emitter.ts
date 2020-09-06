@@ -1,6 +1,5 @@
-import { fold } from 'fp-ts/lib/Option';
-import { Either, bimap, chain, fromOption } from 'fp-ts/lib/Either';
-import { findFirst } from 'fp-ts/lib/Array';
+import { Either } from 'fp-ts/lib/Either';
+import { either, array, option } from 'fp-ts';
 import { pipe } from 'fp-ts/lib/pipeable';
 import { TaskEither } from 'fp-ts/lib/TaskEither';
 
@@ -13,26 +12,31 @@ import {
   ErrorType,
   noHandler,
   invalidParams,
-} from './emitterTypes';
+} from './types';
 
 class Emitter<C extends EventMap> {
   private subscribers: Subscriber<C>[] = [];
 
   constructor(private schemas: IOMap<C>) {}
 
-  private on<E extends keyof C>(args: EmitterArgs<C, E>) {
-    const { event, callback, type } = args;
-    const oldSubscriber = findFirst(
-      (subscriber: Subscriber<C>) => subscriber.event === event,
-    )(this.subscribers);
-    const newSubscriber = { event, callback, type };
+  private getSubscriberByEvent(event: keyof C) {
+    return pipe(
+      this.subscribers,
+      array.findFirst((subscriber) => subscriber.event === event),
+    );
+  }
+
+  private on<E extends keyof C>(subscriber: EmitterArgs<C, E>) {
+    const { event } = subscriber;
+    const oldSubscriber = this.getSubscriberByEvent(event);
+    const newSubscriber = subscriber as Subscriber<C>;
 
     this.subscribers = pipe(
       oldSubscriber,
-      fold(
+      option.fold(
         () => this.subscribers.concat(newSubscriber),
         () =>
-          this.subscribers.map(subscriber =>
+          this.subscribers.map((subscriber) =>
             subscriber.event === event ? newSubscriber : subscriber,
           ),
       ),
@@ -53,29 +57,30 @@ class Emitter<C extends EventMap> {
 
   public off<E extends keyof C>(event: E) {
     this.subscribers = this.subscribers.filter(
-      subscriber => subscriber.event !== event,
+      (subscriber) => subscriber.event !== event,
     );
   }
 
   public emit<E extends keyof C>(
     event: E,
     data: Parameters<C[E]>[0],
-  ): Either<ErrorType, ReturnType<C[E]>> | Either<ErrorType, TaskEither<ErrorType, ReturnType<C[E]>>> {
-    const subscriber = findFirst<Subscriber<C>>(
-      subscriber => subscriber.event === event,
-    )(this.subscribers);
+  ): Either<
+    ErrorType,
+    ReturnType<C[E]> | TaskEither<ErrorType, ReturnType<C[E]>>
+  > {
+    const subscriber = this.getSubscriberByEvent(event);
 
     return pipe(
       subscriber,
-      fromOption(() => noHandler(event)),
-      chain(subscriber => {
+      either.fromOption(() => noHandler(event)),
+      either.chain((subscriber) => {
         const { callback } = subscriber;
 
         return pipe(
           this.schemas[event].decode(data),
-          bimap(
+          either.bimap(
             () => invalidParams(data),
-            data => callback(data),
+            (data) => callback(data),
           ),
         );
       }),

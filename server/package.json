@@ -17,17 +17,17 @@
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "fp-ts": "^2.5.0",
-    "io-ts": "^2.1.1",
-    "jsonrpc-lite": "^2.1.0"
+    "fp-ts": "^2.8.2",
+    "io-ts": "^2.2.10",
+    "jsonrpc-lite": "^2.2.0"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.0",
-    "@types/cors": "^2.8.6",
-    "@types/express": "^4.17.2",
-    "@types/node": "^13.7.2",
-    "ts-node-dev": "^1.0.0-pre.44",
-    "tslib": "^1.10.0",
-    "typescript": "^3.7.5"
+    "@types/cors": "^2.8.7",
+    "@types/express": "^4.17.8",
+    "@types/node": "^13.13.16",
+    "ts-node-dev": "^1.0.0-pre.62",
+    "tslib": "^1.13.0",
+    "typescript": "^3.9.7"
   }
 }

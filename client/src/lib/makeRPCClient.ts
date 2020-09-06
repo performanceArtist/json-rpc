@@ -32,7 +32,7 @@ export const makeRPCClient = <
     data: Parameters<EventMap[E]>[0];
   };
 
-  interface BatchCall {
+  type BatchCall = {
     <A extends keyof EventMap>(a: Call<A>): Promise<[Return<A>]>;
     <A extends keyof EventMap, B extends keyof EventMap>(
       a: Call<A>,

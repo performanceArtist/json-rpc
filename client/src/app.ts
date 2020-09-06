@@ -1,6 +1,6 @@
-import { EventMap } from '../../server/src/tasks';
+import { EventMap } from '../../server/src/tasks/types';
 
-import { makeRPCClient } from './makeRPCClient';
+import { makeRPCClient } from './lib';
 
 const serverURL = 'http://localhost:5000';
 const RPCClient = makeRPCClient<EventMap>(serverURL);

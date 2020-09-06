@@ -2,22 +2,17 @@ import { Type } from 'io-ts';
 import { TaskEither } from 'fp-ts/lib/TaskEither';
 
 export type ErrorType =
-  | { type: 'noHandler'; data: any }
-  | { type: 'invalidParams'; data: any }
-  | { type: 'asyncReject'; data: any };
+  | { type: 'noHandler'; data: unknown }
+  | { type: 'invalidParams'; data: unknown }
+  | { type: 'asyncReject'; data: unknown };
 
-export const noHandler = (data: any): ErrorType => ({
+export const noHandler = (data: unknown): ErrorType => ({
   type: 'noHandler',
   data,
 });
 
-export const invalidParams = (data: any): ErrorType => ({
+export const invalidParams = (data: unknown): ErrorType => ({
   type: 'invalidParams',
-  data,
-});
-
-export const asyncReject = (data: any): ErrorType => ({
-  type: 'asyncReject',
   data,
 });
 
